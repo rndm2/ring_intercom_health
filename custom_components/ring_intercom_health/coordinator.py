@@ -91,6 +91,12 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RELOAD_LOOP))
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RING_RUNTIME))
 
+    def _reset_api_probe_state(self) -> None:
+        """Force the next health cycle to probe Ring API after a reload."""
+
+        self._api_last_success = None
+        self._api_last_probe = None
+
     async def _async_update_data(self) -> HealthData:
         """Evaluate Ring connection health and maybe reload Ring."""
 
@@ -299,7 +305,7 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         self._recent_reloads.append(now)
         self._bad_since = None
         self._clear_ring_subscriptions()
-        self._api_last_success = None
+        self._reset_api_probe_state()
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RELOAD_LOOP))
 
         ring_entry_after = find_config_entry(self.hass, ring_entry_id)
@@ -773,7 +779,7 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         self._recent_reloads.append(now)
         self._bad_since = None
         self._clear_ring_subscriptions()
-        self._api_last_success = None
+        self._reset_api_probe_state()
         await self.async_request_refresh()
 
     def _reload_budget_available(
