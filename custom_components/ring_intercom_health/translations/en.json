@@ -17,7 +17,7 @@
           "startup_grace_seconds": "Startup grace in seconds",
           "post_reload_grace_seconds": "Post-reload grace in seconds",
           "max_reloads_per_hour": "Maximum reloads per rolling hour",
-          "auto_reload": "Automatically reload Ring",
+          "auto_reload": "Auto reload Ring",
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
@@ -56,7 +56,7 @@
           "startup_grace_seconds": "Startup grace in seconds",
           "post_reload_grace_seconds": "Post-reload grace in seconds",
           "max_reloads_per_hour": "Maximum reloads per rolling hour",
-          "auto_reload": "Automatically reload Ring",
+          "auto_reload": "Auto reload Ring",
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
@@ -134,7 +134,7 @@
     },
     "ring_runtime_unhealthy": {
       "title": "Ring runtime connection looks unhealthy",
-      "description": "Ring Intercom Health detected a runtime/API/listener problem: {reason}. If this persists, check Ring integration logs or disable automatic reloads."
+      "description": "Ring Intercom Health detected a runtime/API/listener problem: {reason}. If this persists, check Ring integration logs or disable auto reloads."
     }
   }
 }

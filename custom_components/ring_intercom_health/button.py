@@ -27,7 +27,7 @@ async def async_setup_entry(
 class RingIntercomReloadButton(RingIntercomHealthEntity, ButtonEntity):
     """Manual Ring reload config button."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "reload_ring"
 
     def __init__(

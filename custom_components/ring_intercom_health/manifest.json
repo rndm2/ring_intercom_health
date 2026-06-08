@@ -5,10 +5,10 @@
     "@rndm2"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/rndm2/ring-intercom-health",
-  "issue_tracker": "https://github.com/rndm2/ring-intercom-health/issues",
+  "documentation": "https://github.com/rndm2/ring_intercom_health",
+  "issue_tracker": "https://github.com/rndm2/ring_intercom_health/issues",
   "iot_class": "local_polling",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "after_dependencies": [
     "ring"
   ],
