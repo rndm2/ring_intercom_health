@@ -1,0 +1,140 @@
+{
+  "title": "Ring Intercom Health",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ring Intercom Health",
+        "description": "Create a watchdog that checks Ring runtime connection health and reloads the selected Ring config entry when the API/listener looks degraded.",
+        "data": {
+          "name": "Name",
+          "ring_entry_id": "Ring config entry",
+          "active_api_probe": "Actively probe the Ring API coordinator",
+          "api_max_age_seconds": "Maximum age of last successful Ring API check",
+          "require_listener_started": "Require Ring realtime listener to be started",
+          "check_interval_seconds": "Check interval in seconds",
+          "bad_for_seconds": "Reload only after the bad state lasts this long",
+          "reload_cooldown_seconds": "Minimum time between reloads",
+          "startup_grace_seconds": "Startup grace in seconds",
+          "post_reload_grace_seconds": "Post-reload grace in seconds",
+          "max_reloads_per_hour": "Maximum reloads per rolling hour",
+          "auto_reload": "Automatically reload Ring",
+          "notify_on_reload": "Create a persistent notification on reload",
+          "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
+          "source_entity_id": "Optional Ring source entity for UI/device linking",
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+        }
+      }
+    },
+    "error": {
+      "required": "This field is required.",
+      "no_ring_entries": "No Ring config entries were found. Set up the Ring integration first.",
+      "ambiguous_or_invalid_ring_entry": "Choose a specific Ring config entry. Auto is only valid when there is exactly one Ring config entry.",
+      "too_low": "The value is too low.",
+      "cooldown_less_than_bad_for": "Reload cooldown must not be lower than the bad-state threshold.",
+      "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
+      "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
+      "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+    },
+    "abort": {
+      "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ring Intercom Health options",
+        "description": "Tune Ring runtime/API/listener watchdog thresholds.",
+        "data": {
+          "ring_entry_id": "Ring config entry",
+          "active_api_probe": "Actively probe the Ring API coordinator",
+          "api_max_age_seconds": "Maximum age of last successful Ring API check",
+          "require_listener_started": "Require Ring realtime listener to be started",
+          "check_interval_seconds": "Check interval in seconds",
+          "bad_for_seconds": "Reload only after the bad state lasts this long",
+          "reload_cooldown_seconds": "Minimum time between reloads",
+          "startup_grace_seconds": "Startup grace in seconds",
+          "post_reload_grace_seconds": "Post-reload grace in seconds",
+          "max_reloads_per_hour": "Maximum reloads per rolling hour",
+          "auto_reload": "Automatically reload Ring",
+          "notify_on_reload": "Create a persistent notification on reload",
+          "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
+          "source_entity_id": "Optional Ring source entity for UI/device linking",
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+        }
+      }
+    },
+    "error": {
+      "required": "This field is required.",
+      "no_ring_entries": "No Ring config entries were found. Set up the Ring integration first.",
+      "ambiguous_or_invalid_ring_entry": "Choose a specific Ring config entry. Auto is only valid when there is exactly one Ring config entry.",
+      "too_low": "The value is too low.",
+      "cooldown_less_than_bad_for": "Reload cooldown must not be lower than the bad-state threshold.",
+      "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
+      "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
+      "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "healthy": {
+        "name": "Connection healthy"
+      }
+    },
+    "sensor": {
+      "reason": {
+        "name": "Reason"
+      },
+      "api_last_success_age": {
+        "name": "API last success age"
+      },
+      "listener_state": {
+        "name": "Listener state"
+      },
+      "listener_count": {
+        "name": "Listener count"
+      },
+      "reload_count": {
+        "name": "Reload count"
+      },
+      "suppressed_reload_count": {
+        "name": "Suppressed reload count"
+      },
+      "last_check": {
+        "name": "Last check"
+      },
+      "last_reload": {
+        "name": "Last reload"
+      },
+      "bad_since": {
+        "name": "Bad since"
+      },
+      "api_last_probe": {
+        "name": "API last probe"
+      },
+      "listener_owned": {
+        "name": "Listener owned"
+      }
+    },
+    "button": {
+      "reload_ring": {
+        "name": "Reload Ring"
+      }
+    }
+  },
+  "issues": {
+    "ring_entry_missing_or_ambiguous": {
+      "title": "Ring Intercom Health cannot resolve the Ring config entry",
+      "description": "The configured Ring config entry `{ring_entry_id}` is missing or ambiguous. Open Ring Intercom Health options and choose a specific Ring config entry, or use Auto only when there is exactly one Ring config entry."
+    },
+    "reload_loop_detected": {
+      "title": "Ring Intercom Health suppressed reloads",
+      "description": "The watchdog reached the configured reload budget of {max_reloads} reloads per hour. It will not reload Ring again until the rolling window allows it."
+    },
+    "ring_runtime_unhealthy": {
+      "title": "Ring runtime connection looks unhealthy",
+      "description": "Ring Intercom Health detected a runtime/API/listener problem: {reason}. If this persists, check Ring integration logs or disable automatic reloads."
+    }
+  }
+}
