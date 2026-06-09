@@ -15,9 +15,18 @@ Health is evaluated from the Ring integration runtime data:
 - watchdog-owned Ring realtime listener subscription
 - Ring realtime listener coordinator
 - Ring realtime listener `started` flag
+- private Ring listener integrity flags, when available:
+  - listener subscribed state
+  - FCM token presence
+  - FCM receiver presence/task state
+  - session refresh task state
+  - notification callback registration
 
 If the Ring runtime/API/listener looks unhealthy for long enough, the watchdog
-reloads only the selected Ring config entry.
+reloads only the selected Ring config entry. It does not soft-restart the Ring
+listener. If private listener flags show a hard-bad state, the recovery action is
+the normal full Ring config-entry reload, protected by grace periods, cooldowns,
+and reload-budget limits.
 
 ## UI/device linking
 
@@ -68,6 +77,13 @@ The integration creates:
 - `sensor.*_listener_state`
 - `sensor.*_listener_owned`
 - `sensor.*_listener_count`
+- `sensor.*_listener_private_health`
+- `sensor.*_listener_subscribed`
+- `sensor.*_listener_fcm_token`
+- `sensor.*_listener_receiver`
+- `sensor.*_listener_receiver_task`
+- `sensor.*_listener_session_task`
+- `sensor.*_listener_callback`
 - `sensor.*_reload_count`
 - `sensor.*_suppressed_reload_count`
 - `sensor.*_last_check`
@@ -77,9 +93,14 @@ The integration creates:
 
 ## Important limitation
 
-This integration checks Ring runtime connection health. It does not prove that a
-door-open command physically opened the door. A separate safe-open proxy button
-would be needed for command-level retry/verification.
+This integration checks Ring runtime connection health. It intentionally reads
+some private Home Assistant Ring/python-ring-doorbell listener internals because
+Ring does not expose a public listener heartbeat. Missing private attributes are
+treated as unknown, not bad. Present-but-inconsistent private state is treated
+as degraded and can trigger the normal full Ring reload policy.
+
+It does not prove that a door-open command physically opened the door. A separate
+safe-open proxy button would be needed for command-level retry/verification.
 
 ## Brand assets
 

@@ -38,6 +38,8 @@ from .models import HealthData
 
 _LOGGER = logging.getLogger(__name__)
 
+_MISSING = object()
+
 ISSUE_RING_ENTRY = "ring_entry_missing_or_ambiguous"
 ISSUE_RELOAD_LOOP = "reload_loop_detected"
 ISSUE_RING_RUNTIME = "ring_runtime_unhealthy"
@@ -462,6 +464,13 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
             "listener_owned": False,
             "listener_started": None,
             "listener_count": None,
+            "listener_private_health": None,
+            "listener_subscribed": None,
+            "listener_fcm_token_present": None,
+            "listener_receiver_present": None,
+            "listener_receiver_task_state": None,
+            "listener_session_task_state": None,
+            "listener_callback_registered": None,
         }
 
         listener_expected = bool(values[CONF_REQUIRE_LISTENER_STARTED])
@@ -497,6 +506,22 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
             f"watchdog_listener_contexts={len(self._listener_contexts)}"
         )
 
+        private_state = self._inspect_private_listener_state(
+            listen_coordinator,
+            event_listener,
+            listener_started,
+        )
+        result.update(private_state)
+        result["signals"].extend(private_state["signals"])
+
+        if listener_expected and private_state["bad_reasons"]:
+            result["healthy"] = False
+            result["reason"] = (
+                "Ring realtime listener private state unhealthy: "
+                + "; ".join(private_state["bad_reasons"][:3])
+            )
+            return result
+
         if listener_expected and not listener_owned:
             result["healthy"] = False
             result["reason"] = "Ring realtime listener is not owned by watchdog"
@@ -510,6 +535,222 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         result["healthy"] = True
         result["reason"] = "listener healthy"
         return result
+
+    def _inspect_private_listener_state(
+        self,
+        listen_coordinator: Any,
+        event_listener: Any | None,
+        listener_started: bool | None,
+    ) -> dict[str, Any]:
+        """Inspect private Ring listener internals for hard-dead states.
+
+        This intentionally piggybacks on Home Assistant Ring/python-ring-doorbell
+        internals. Missing private attributes are reported as unknown, not bad.
+        Present-but-inconsistent private state is treated as unhealthy and can
+        trigger the normal full Ring config-entry reload policy.
+        """
+
+        result: dict[str, Any] = {
+            "signals": [],
+            "bad_reasons": [],
+            "listener_private_health": "unknown",
+            "listener_subscribed": None,
+            "listener_fcm_token_present": None,
+            "listener_receiver_present": None,
+            "listener_receiver_task_state": None,
+            "listener_session_task_state": None,
+            "listener_callback_registered": None,
+        }
+
+        if event_listener is None:
+            result["signals"].append("event_listener=missing")
+            result["listener_private_health"] = "bad"
+            result["bad_reasons"].append("event_listener_missing")
+            return result
+
+        bad_reasons: list[str] = []
+        listener_is_started = bool(listener_started)
+
+        subscribed = getattr(event_listener, "subscribed", _MISSING)
+        if subscribed is not _MISSING:
+            result["listener_subscribed"] = bool(subscribed)
+            result["signals"].append(f"listener_subscribed={bool(subscribed)}")
+            if listener_is_started and not subscribed:
+                bad_reasons.append("listener_not_subscribed")
+        else:
+            result["signals"].append("listener_subscribed=unknown")
+
+        fcm_token = getattr(event_listener, "fcm_token", _MISSING)
+        if fcm_token is not _MISSING:
+            token_present = bool(fcm_token)
+            result["listener_fcm_token_present"] = token_present
+            result["signals"].append(f"listener_fcm_token_present={token_present}")
+            if listener_is_started and not token_present:
+                bad_reasons.append("fcm_token_missing")
+        else:
+            result["signals"].append("listener_fcm_token_present=unknown")
+
+        receiver = getattr(event_listener, "_receiver", _MISSING)
+        if receiver is not _MISSING:
+            receiver_present = receiver is not None
+            result["listener_receiver_present"] = receiver_present
+            result["signals"].append(f"listener_receiver_present={receiver_present}")
+            if listener_is_started and not receiver_present:
+                bad_reasons.append("fcm_receiver_missing")
+            if receiver_present:
+                receiver_state = self._receiver_task_state(receiver)
+                result["listener_receiver_task_state"] = receiver_state
+                result["signals"].append(
+                    f"listener_receiver_task_state={receiver_state}"
+                )
+                if listener_is_started and receiver_state in {
+                    "done",
+                    "cancelled",
+                    "not_running",
+                    "stopped",
+                }:
+                    bad_reasons.append(f"fcm_receiver_{receiver_state}")
+        else:
+            result["signals"].append("listener_receiver_present=unknown")
+
+        session_task = getattr(event_listener, "session_refresh_task", _MISSING)
+        if session_task is not _MISSING:
+            session_state = self._task_state(session_task)
+            result["listener_session_task_state"] = session_state
+            result["signals"].append(f"listener_session_task_state={session_state}")
+            if listener_is_started and session_state in {
+                "missing",
+                "done",
+                "cancelled",
+            }:
+                bad_reasons.append(f"session_refresh_task_{session_state}")
+        else:
+            result["signals"].append("listener_session_task_state=unknown")
+
+        callback_registered = self._listener_callback_registered(
+            listen_coordinator,
+            event_listener,
+        )
+        result["listener_callback_registered"] = callback_registered
+        result["signals"].append(f"listener_callback_registered={callback_registered}")
+        if listener_is_started and callback_registered is False:
+            bad_reasons.append("notification_callback_missing")
+
+        result["bad_reasons"] = bad_reasons
+        result["listener_private_health"] = "bad" if bad_reasons else "ok"
+        return result
+
+    @staticmethod
+    def _listener_callback_registered(
+        listen_coordinator: Any,
+        event_listener: Any,
+    ) -> bool | None:
+        """Return whether HA's Ring listener callback appears registered."""
+
+        listen_callback_id = getattr(
+            listen_coordinator,
+            "_listen_callback_id",
+            _MISSING,
+        )
+        if listen_callback_id is not _MISSING:
+            return listen_callback_id is not None
+
+        callbacks = getattr(event_listener, "_callbacks", _MISSING)
+        if callbacks is _MISSING:
+            return None
+
+        try:
+            return len(callbacks) > 0
+        except TypeError:
+            return None
+
+    @classmethod
+    def _receiver_task_state(cls, receiver: Any) -> str:
+        """Return best-effort private FCM receiver task/running state."""
+
+        run_state = getattr(receiver, "run_state", _MISSING)
+        if run_state is not _MISSING:
+            state_name = getattr(run_state, "name", str(run_state)).lower()
+            if "stopped" in state_name or "stopping" in state_name:
+                return "stopped"
+            if "started" in state_name:
+                return "running"
+
+        do_listen = getattr(receiver, "do_listen", _MISSING)
+        if isinstance(do_listen, bool) and not do_listen:
+            return "stopped"
+
+        tasks = getattr(receiver, "tasks", _MISSING)
+        if tasks is not _MISSING:
+            try:
+                task_states = [cls._task_state(task) for task in tasks]
+            except TypeError:
+                task_states = []
+            if task_states and all(
+                state in {"done", "cancelled"} for state in task_states
+            ):
+                return "done"
+            if any(state == "running" for state in task_states):
+                return "running"
+
+        for attr_name in (
+            "_listen_task",
+            "_task",
+            "_reader_task",
+            "_read_task",
+            "_receiver_task",
+            "_run_task",
+            "_process_task",
+            "_connection_task",
+        ):
+            task = getattr(receiver, attr_name, _MISSING)
+            if task is not _MISSING:
+                return cls._task_state(task)
+
+        for attr_name in (
+            "running",
+            "_running",
+            "started",
+            "_started",
+            "is_running",
+            "is_started",
+            "is_alive",
+        ):
+            value = getattr(receiver, attr_name, _MISSING)
+            if value is _MISSING:
+                continue
+            try:
+                value = value() if callable(value) else value
+            except TypeError:
+                continue
+            if isinstance(value, bool):
+                return "running" if value else "not_running"
+
+        return "unknown"
+
+    @staticmethod
+    def _task_state(task: Any) -> str:
+        """Return a compact state for asyncio-like tasks."""
+
+        if task is None:
+            return "missing"
+
+        cancelled = getattr(task, "cancelled", None)
+        if callable(cancelled):
+            try:
+                if cancelled():
+                    return "cancelled"
+            except Exception:  # noqa: BLE001 - private introspection only
+                return "unknown"
+
+        done = getattr(task, "done", None)
+        if callable(done):
+            try:
+                return "done" if done() else "running"
+            except Exception:  # noqa: BLE001 - private introspection only
+                return "unknown"
+
+        return "unknown"
 
     def _ensure_ring_subscriptions(
         self,
@@ -668,6 +909,13 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
             listener_owned=bool(result.get("listener_owned", False)),
             listener_started=result.get("listener_started"),
             listener_count=result.get("listener_count"),
+            listener_private_health=result.get("listener_private_health"),
+            listener_subscribed=result.get("listener_subscribed"),
+            listener_fcm_token_present=result.get("listener_fcm_token_present"),
+            listener_receiver_present=result.get("listener_receiver_present"),
+            listener_receiver_task_state=result.get("listener_receiver_task_state"),
+            listener_session_task_state=result.get("listener_session_task_state"),
+            listener_callback_registered=result.get("listener_callback_registered"),
         )
 
     def _issue_id(self, base: str) -> str:

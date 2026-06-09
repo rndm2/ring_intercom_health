@@ -64,6 +64,65 @@ SENSOR_DESCRIPTIONS: tuple[RingIntercomHealthSensorDescription, ...] = (
         value_fn=lambda data: data.listener_count,
     ),
     RingIntercomHealthSensorDescription(
+        key="listener_private_health",
+        translation_key="listener_private_health",
+        value_fn=lambda data: data.listener_private_health,
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_subscribed",
+        translation_key="listener_subscribed",
+        value_fn=lambda data: (
+            None
+            if data.listener_subscribed is None
+            else "subscribed"
+            if data.listener_subscribed
+            else "not_subscribed"
+        ),
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_fcm_token",
+        translation_key="listener_fcm_token",
+        value_fn=lambda data: (
+            None
+            if data.listener_fcm_token_present is None
+            else "present"
+            if data.listener_fcm_token_present
+            else "missing"
+        ),
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_receiver",
+        translation_key="listener_receiver",
+        value_fn=lambda data: (
+            None
+            if data.listener_receiver_present is None
+            else "present"
+            if data.listener_receiver_present
+            else "missing"
+        ),
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_receiver_task",
+        translation_key="listener_receiver_task",
+        value_fn=lambda data: data.listener_receiver_task_state,
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_session_task",
+        translation_key="listener_session_task",
+        value_fn=lambda data: data.listener_session_task_state,
+    ),
+    RingIntercomHealthSensorDescription(
+        key="listener_callback",
+        translation_key="listener_callback",
+        value_fn=lambda data: (
+            None
+            if data.listener_callback_registered is None
+            else "registered"
+            if data.listener_callback_registered
+            else "missing"
+        ),
+    ),
+    RingIntercomHealthSensorDescription(
         key="api_last_probe",
         translation_key="api_last_probe",
         device_class=SensorDeviceClass.TIMESTAMP,

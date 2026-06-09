@@ -56,5 +56,12 @@ async def async_get_config_entry_diagnostics(
             "listener_owned": data.listener_owned,
             "listener_started": data.listener_started,
             "listener_count": data.listener_count,
+            "listener_private_health": data.listener_private_health,
+            "listener_subscribed": data.listener_subscribed,
+            "listener_fcm_token_present": data.listener_fcm_token_present,
+            "listener_receiver_present": data.listener_receiver_present,
+            "listener_receiver_task_state": data.listener_receiver_task_state,
+            "listener_session_task_state": data.listener_session_task_state,
+            "listener_callback_registered": data.listener_callback_registered,
         },
     }

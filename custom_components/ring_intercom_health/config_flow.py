@@ -360,7 +360,7 @@ class RingIntercomHealthConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ring Intercom Health."""
 
     VERSION = 1
-    MINOR_VERSION = 7
+    MINOR_VERSION = 8
 
     @staticmethod
     @callback

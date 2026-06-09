@@ -32,6 +32,13 @@ class HealthData:
     listener_owned: bool = False
     listener_started: bool | None = None
     listener_count: int | None = None
+    listener_private_health: str | None = None
+    listener_subscribed: bool | None = None
+    listener_fcm_token_present: bool | None = None
+    listener_receiver_present: bool | None = None
+    listener_receiver_task_state: str | None = None
+    listener_session_task_state: str | None = None
+    listener_callback_registered: bool | None = None
 
 
 @dataclass(slots=True)

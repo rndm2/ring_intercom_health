@@ -115,6 +115,27 @@
       },
       "listener_owned": {
         "name": "Listener owned"
+      },
+      "listener_private_health": {
+        "name": "Listener private health"
+      },
+      "listener_subscribed": {
+        "name": "Listener subscription"
+      },
+      "listener_fcm_token": {
+        "name": "Listener FCM token"
+      },
+      "listener_receiver": {
+        "name": "Listener FCM receiver"
+      },
+      "listener_receiver_task": {
+        "name": "Listener receiver task"
+      },
+      "listener_session_task": {
+        "name": "Listener session task"
+      },
+      "listener_callback": {
+        "name": "Listener notification callback"
       }
     },
     "button": {
