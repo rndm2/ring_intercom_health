@@ -152,10 +152,6 @@
     "reload_loop_detected": {
       "title": "Ring Intercom Health suppressed reloads",
       "description": "The watchdog reached the configured reload budget of {max_reloads} reloads per hour. It will not reload Ring again until the rolling window allows it."
-    },
-    "ring_runtime_unhealthy": {
-      "title": "Ring runtime connection looks unhealthy",
-      "description": "Ring Intercom Health detected a runtime/API/listener problem: {reason}. If this persists, check Ring integration logs or disable auto reloads."
     }
   }
 }

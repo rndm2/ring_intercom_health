@@ -931,7 +931,13 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         healthy: bool,
         suppress_runtime_issue: bool,
     ) -> None:
-        """Create or clear repair issues for structural/runtime problems."""
+        """Create or clear repair issues for structural problems.
+
+        Runtime/API/listener degradation is intentionally logged and exposed via
+        diagnostic entities only. It is not a Repairs issue, because transient
+        Ring/FCM failures are handled by the reload policy and should not spam
+        the Home Assistant Repairs UI.
+        """
 
         if ring_entry_id is None:
             ir.async_create_issue(
@@ -946,19 +952,9 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         else:
             ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RING_ENTRY))
 
-        if healthy or suppress_runtime_issue:
-            ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RING_RUNTIME))
-            return
-
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            self._issue_id(ISSUE_RING_RUNTIME),
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key=ISSUE_RING_RUNTIME,
-            translation_placeholders={"reason": reason},
-        )
+        # Older versions created a warning Repair issue for runtime degradation.
+        # Keep deleting it so upgrading clears any already-created issue.
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RING_RUNTIME))
 
     def _clear_runtime_issues(self) -> None:
         """Clear issues that should disappear after recovery."""
