@@ -21,7 +21,9 @@
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
-          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device",
+          "scheduled_reload": "Scheduled reload Ring",
+          "scheduled_reload_interval_seconds": "Scheduled reload interval in seconds"
         }
       }
     },
@@ -34,7 +36,8 @@
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
       "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
       "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
-      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval.",
+      "too_high": "The value is too high."
     },
     "abort": {
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog."
@@ -60,7 +63,9 @@
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
-          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device",
+          "scheduled_reload": "Scheduled reload Ring",
+          "scheduled_reload_interval_seconds": "Scheduled reload interval in seconds"
         }
       }
     },
@@ -73,7 +78,8 @@
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
       "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
       "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
-      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval.",
+      "too_high": "The value is too high."
     }
   },
   "entity": {
@@ -136,6 +142,15 @@
       },
       "listener_callback": {
         "name": "Listener notification callback"
+      },
+      "scheduled_reload_state": {
+        "name": "Scheduled reload"
+      },
+      "scheduled_reload_interval": {
+        "name": "Scheduled reload interval"
+      },
+      "next_scheduled_reload": {
+        "name": "Next scheduled reload"
       }
     },
     "button": {

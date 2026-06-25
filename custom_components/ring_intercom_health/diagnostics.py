@@ -63,5 +63,12 @@ async def async_get_config_entry_diagnostics(
             "listener_receiver_task_state": data.listener_receiver_task_state,
             "listener_session_task_state": data.listener_session_task_state,
             "listener_callback_registered": data.listener_callback_registered,
+            "scheduled_reload": data.scheduled_reload,
+            "scheduled_reload_interval_seconds": data.scheduled_reload_interval_seconds,
+            "next_scheduled_reload": (
+                data.next_scheduled_reload.isoformat()
+                if data.next_scheduled_reload
+                else None
+            ),
         },
     }

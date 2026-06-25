@@ -39,6 +39,9 @@ class HealthData:
     listener_receiver_task_state: str | None = None
     listener_session_task_state: str | None = None
     listener_callback_registered: bool | None = None
+    scheduled_reload: bool = False
+    scheduled_reload_interval_seconds: int | None = None
+    next_scheduled_reload: datetime | None = None
 
 
 @dataclass(slots=True)
