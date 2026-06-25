@@ -21,7 +21,9 @@
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
-          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device",
+          "scheduled_reload": "Scheduled reload Ring",
+          "scheduled_reload_interval_seconds": "Scheduled reload interval in seconds"
         }
       }
     },
@@ -60,7 +62,9 @@
           "notify_on_reload": "Create a persistent notification on reload",
           "active_probe_interval_seconds": "Minimum interval between active Ring API probes",
           "source_entity_id": "Optional Ring source entity for UI/device linking",
-          "attach_to_source_device": "Attach watchdog entities to the source Ring device"
+          "attach_to_source_device": "Attach watchdog entities to the source Ring device",
+          "scheduled_reload": "Scheduled reload Ring",
+          "scheduled_reload_interval_seconds": "Scheduled reload interval in seconds"
         }
       }
     },
@@ -136,6 +140,15 @@
       },
       "listener_callback": {
         "name": "Listener notification callback"
+      },
+      "scheduled_reload_state": {
+        "name": "Scheduled reload"
+      },
+      "scheduled_reload_interval": {
+        "name": "Scheduled reload interval"
+      },
+      "next_scheduled_reload": {
+        "name": "Next scheduled reload"
       }
     },
     "button": {

@@ -29,6 +29,8 @@ from .const import (
     CONF_RELOAD_COOLDOWN_SECONDS,
     CONF_REQUIRE_LISTENER_STARTED,
     CONF_RING_ENTRY_ID,
+    CONF_SCHEDULED_RELOAD,
+    CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS,
     CONF_STARTUP_GRACE_SECONDS,
     DOMAIN,
     MAX_REASON_LENGTH,
@@ -120,6 +122,8 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         bad_for = int(values[CONF_BAD_FOR_SECONDS])
         cooldown = int(values[CONF_RELOAD_COOLDOWN_SECONDS])
         max_reloads_per_hour = int(values[CONF_MAX_RELOADS_PER_HOUR])
+        scheduled_reload = bool(values[CONF_SCHEDULED_RELOAD])
+        scheduled_reload_interval = int(values[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS])
 
         ring_entry_id = resolve_ring_entry_id(self.hass, configured_ring_entry_id)
         ring_entry = (
@@ -148,6 +152,23 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         if healthy:
             self._bad_since = None
             self._clear_runtime_issues()
+            scheduled_snapshot = await self._maybe_run_scheduled_reload(
+                now,
+                scheduled_reload,
+                scheduled_reload_interval,
+                cooldown,
+                max_reloads_per_hour,
+                ring_entry_id,
+                ring_entry,
+                ring_entry_state,
+                signals,
+                result,
+                in_startup_grace,
+                in_post_reload_grace,
+                notify_on_reload,
+            )
+            if scheduled_snapshot is not None:
+                return scheduled_snapshot
             if self._last_logged_reason != reason:
                 _LOGGER.info("Ring Intercom Health recovered")
                 self._last_logged_reason = reason
@@ -338,6 +359,10 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
             "active_api_probe": bool(values[CONF_ACTIVE_API_PROBE]),
             "active_probe_interval_seconds": int(
                 values[CONF_ACTIVE_PROBE_INTERVAL_SECONDS]
+            ),
+            "scheduled_reload": bool(values[CONF_SCHEDULED_RELOAD]),
+            "scheduled_reload_interval_seconds": int(
+                values[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS]
             ),
             "listener_expected": False,
             "listener_owned": False,
@@ -888,6 +913,14 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         """Build a data snapshot."""
 
         result = result or {}
+        scheduled_reload = bool(result.get("scheduled_reload", False))
+        scheduled_reload_interval = result.get("scheduled_reload_interval_seconds")
+        next_scheduled_reload = None
+        if scheduled_reload and scheduled_reload_interval is not None:
+            anchor = self._last_reload or self._setup_time
+            next_scheduled_reload = anchor + timedelta(
+                seconds=int(scheduled_reload_interval)
+            )
         return HealthData(
             healthy=healthy,
             reason=self._truncate_reason(reason),
@@ -916,6 +949,123 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
             listener_receiver_task_state=result.get("listener_receiver_task_state"),
             listener_session_task_state=result.get("listener_session_task_state"),
             listener_callback_registered=result.get("listener_callback_registered"),
+            scheduled_reload=scheduled_reload,
+            scheduled_reload_interval_seconds=scheduled_reload_interval,
+            next_scheduled_reload=next_scheduled_reload,
+        )
+
+    async def _maybe_run_scheduled_reload(
+        self,
+        now: datetime,
+        scheduled_reload: bool,
+        scheduled_reload_interval: int,
+        cooldown: int,
+        max_reloads_per_hour: int,
+        ring_entry_id: str | None,
+        ring_entry: ConfigEntry | None,
+        ring_entry_state: str | None,
+        signals: list[str],
+        result: dict[str, Any],
+        in_startup_grace: bool,
+        in_post_reload_grace: bool,
+        notify_on_reload: bool,
+    ) -> HealthData | None:
+        """Reload Ring on a user-configured schedule when the runtime is healthy."""
+
+        if not scheduled_reload:
+            return None
+
+        anchor = self._last_reload or self._setup_time
+        if self._seconds_since(anchor, now) < scheduled_reload_interval:
+            return None
+
+        scheduled_signals = [
+            *signals,
+            "scheduled_reload=true",
+            f"scheduled_reload_interval={scheduled_reload_interval}s",
+        ]
+        reason = f"scheduled reload interval elapsed: {scheduled_reload_interval}s"
+
+        if ring_entry_id is None or ring_entry is None:
+            return None
+
+        if ring_entry_state in BUSY_STATE_NAMES:
+            _LOGGER.debug(
+                "Scheduled Ring reload skipped because Ring entry is busy: %s",
+                ring_entry_state,
+            )
+            return None
+
+        if in_startup_grace or in_post_reload_grace:
+            return None
+
+        if self._last_reload is not None:
+            if self._seconds_since(self._last_reload, now) < cooldown:
+                return None
+
+        if not self._reload_budget_available(now, max_reloads_per_hour):
+            self._suppressed_reload_count += 1
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                self._issue_id(ISSUE_RELOAD_LOOP),
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=ISSUE_RELOAD_LOOP,
+                translation_placeholders={"max_reloads": str(max_reloads_per_hour)},
+            )
+            _LOGGER.warning(
+                "Scheduled Ring reload suppressed because max_reloads_per_hour=%s was reached",
+                max_reloads_per_hour,
+            )
+            return self._snapshot(
+                now,
+                True,
+                "healthy; scheduled reload budget exhausted",
+                scheduled_signals,
+                ring_entry_id,
+                ring_entry_state,
+                result,
+            )
+
+        try:
+            await self._reload_ring_entry(
+                ring_entry_id,
+                reason,
+                scheduled_signals,
+                notify_on_reload,
+            )
+        except Exception as err:  # noqa: BLE001 - expose reload failure as state
+            self._suppressed_reload_count += 1
+            _LOGGER.exception("Scheduled Ring config entry reload failed")
+            return self._snapshot(
+                now,
+                True,
+                f"healthy; scheduled reload failed: {type(err).__name__}",
+                scheduled_signals,
+                ring_entry_id,
+                ring_entry_state,
+                result,
+            )
+
+        self._last_reload = now
+        self._reload_count += 1
+        self._recent_reloads.append(now)
+        self._bad_since = None
+        self._clear_ring_subscriptions()
+        self._reset_api_probe_state()
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(ISSUE_RELOAD_LOOP))
+
+        ring_entry_after = find_config_entry(self.hass, ring_entry_id)
+        ring_entry_state_after = self._entry_state_name(ring_entry_after)
+        return self._snapshot(
+            now,
+            True,
+            "healthy; scheduled Ring config entry reloaded",
+            scheduled_signals,
+            ring_entry_id,
+            ring_entry_state_after,
+            result,
         )
 
     def _issue_id(self, base: str) -> str:

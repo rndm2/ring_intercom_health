@@ -153,6 +153,23 @@ SENSOR_DESCRIPTIONS: tuple[RingIntercomHealthSensorDescription, ...] = (
         value_fn=lambda data: data.last_reload,
     ),
     RingIntercomHealthSensorDescription(
+        key="scheduled_reload_state",
+        translation_key="scheduled_reload_state",
+        value_fn=lambda data: "enabled" if data.scheduled_reload else "disabled",
+    ),
+    RingIntercomHealthSensorDescription(
+        key="scheduled_reload_interval",
+        translation_key="scheduled_reload_interval",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        value_fn=lambda data: data.scheduled_reload_interval_seconds,
+    ),
+    RingIntercomHealthSensorDescription(
+        key="next_scheduled_reload",
+        translation_key="next_scheduled_reload",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda data: data.next_scheduled_reload,
+    ),
+    RingIntercomHealthSensorDescription(
         key="bad_since",
         translation_key="bad_since",
         device_class=SensorDeviceClass.TIMESTAMP,

@@ -28,6 +28,10 @@ listener. If private listener flags show a hard-bad state, the recovery action i
 the normal full Ring config-entry reload, protected by grace periods, cooldowns,
 and reload-budget limits.
 
+Optionally, the watchdog can also do a preventive scheduled Ring config-entry
+reload after a fixed interval. Scheduled reloads are disabled by default and use
+the same busy-entry, cooldown, and reload-budget protections.
+
 ## UI/device linking
 
 This integration is a Ring runtime connection watchdog. It does not use Ring
@@ -64,6 +68,8 @@ post_reload_grace_seconds: 180
 max_reloads_per_hour: 2
 auto_reload: true
 notify_on_reload: false
+scheduled_reload: false
+scheduled_reload_interval_seconds: 86400
 ```
 
 ## Entities
@@ -88,6 +94,9 @@ The integration creates:
 - `sensor.*_suppressed_reload_count`
 - `sensor.*_last_check`
 - `sensor.*_last_reload`
+- `sensor.*_scheduled_reload_state`
+- `sensor.*_scheduled_reload_interval`
+- `sensor.*_next_scheduled_reload`
 - `sensor.*_bad_since`
 - `button.*_reload_ring`
 
@@ -119,3 +128,9 @@ custom_components/ring_intercom_health/brand/logo.png
 ## Timing defaults
 
 The default `api_max_age_seconds` is 420 seconds so it does not conflict with the default 300 second active probe interval and 60 second check interval.
+
+### Runtime unhealthy notifications
+
+Runtime/API/listener degradation is logged and exposed through diagnostic entities only.
+It no longer creates a Home Assistant Repairs issue, because transient Ring/FCM failures
+are handled by the reload policy and should not spam the Repairs UI.

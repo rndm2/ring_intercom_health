@@ -28,6 +28,8 @@ from .const import (
     CONF_RELOAD_COOLDOWN_SECONDS,
     CONF_REQUIRE_LISTENER_STARTED,
     CONF_RING_ENTRY_ID,
+    CONF_SCHEDULED_RELOAD,
+    CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS,
     CONF_SOURCE_ENTITY_ID,
     CONF_STARTUP_GRACE_SECONDS,
     DEFAULT_ACTIVE_API_PROBE,
@@ -42,6 +44,8 @@ from .const import (
     DEFAULT_POST_RELOAD_GRACE_SECONDS,
     DEFAULT_RELOAD_COOLDOWN_SECONDS,
     DEFAULT_REQUIRE_LISTENER_STARTED,
+    DEFAULT_SCHEDULED_RELOAD,
+    DEFAULT_SCHEDULED_RELOAD_INTERVAL_SECONDS,
     DEFAULT_STARTUP_GRACE_SECONDS,
     DOMAIN,
     MAX_MAX_RELOADS_PER_HOUR,
@@ -53,6 +57,8 @@ from .const import (
     MIN_GRACE_SECONDS,
     MIN_MAX_RELOADS_PER_HOUR,
     MIN_RELOAD_COOLDOWN_SECONDS,
+    MIN_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+    MAX_SCHEDULED_RELOAD_INTERVAL_SECONDS,
 )
 from .helpers import (
     ring_entries,
@@ -235,6 +241,24 @@ def _schema(
                 CONF_NOTIFY_ON_RELOAD,
                 default=defaults.get(CONF_NOTIFY_ON_RELOAD, DEFAULT_NOTIFY_ON_RELOAD),
             ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_SCHEDULED_RELOAD,
+                default=defaults.get(
+                    CONF_SCHEDULED_RELOAD,
+                    DEFAULT_SCHEDULED_RELOAD,
+                ),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+                default=defaults.get(
+                    CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+                    DEFAULT_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+                ),
+            ): _number_selector(
+                MIN_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+                MAX_SCHEDULED_RELOAD_INTERVAL_SECONDS,
+                300,
+            ),
         }
     )
 
@@ -255,12 +279,16 @@ def _coerce_user_input(user_input: dict[str, Any]) -> dict[str, Any]:
         CONF_MAX_RELOADS_PER_HOUR,
         CONF_ACTIVE_PROBE_INTERVAL_SECONDS,
         CONF_API_MAX_AGE_SECONDS,
+        CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS,
     ):
         data[key] = int(data[key])
 
     data[CONF_AUTO_RELOAD] = bool(data.get(CONF_AUTO_RELOAD, DEFAULT_AUTO_RELOAD))
     data[CONF_NOTIFY_ON_RELOAD] = bool(
         data.get(CONF_NOTIFY_ON_RELOAD, DEFAULT_NOTIFY_ON_RELOAD)
+    )
+    data[CONF_SCHEDULED_RELOAD] = bool(
+        data.get(CONF_SCHEDULED_RELOAD, DEFAULT_SCHEDULED_RELOAD)
     )
     data[CONF_ATTACH_TO_SOURCE_DEVICE] = bool(
         data.get(CONF_ATTACH_TO_SOURCE_DEVICE, DEFAULT_ATTACH_TO_SOURCE_DEVICE)
@@ -339,6 +367,12 @@ def _validate_user_input(
         errors[CONF_API_MAX_AGE_SECONDS] = "too_low"
     if data[CONF_ACTIVE_PROBE_INTERVAL_SECONDS] < MIN_ACTIVE_PROBE_INTERVAL_SECONDS:
         errors[CONF_ACTIVE_PROBE_INTERVAL_SECONDS] = "too_low"
+    if (
+        data[CONF_SCHEDULED_RELOAD]
+        and data[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS]
+        < MIN_SCHEDULED_RELOAD_INTERVAL_SECONDS
+    ):
+        errors[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS] = "too_low"
     if data[CONF_RELOAD_COOLDOWN_SECONDS] < data[CONF_BAD_FOR_SECONDS]:
         errors[CONF_RELOAD_COOLDOWN_SECONDS] = "cooldown_less_than_bad_for"
 
@@ -360,7 +394,7 @@ class RingIntercomHealthConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ring Intercom Health."""
 
     VERSION = 1
-    MINOR_VERSION = 8
+    MINOR_VERSION = 9
 
     @staticmethod
     @callback
