@@ -59,6 +59,7 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         self._setup_time = dt_util.utcnow()
         self._bad_since: datetime | None = None
         self._last_reload: datetime | None = None
+        self._last_scheduled_reload_attempt: datetime | None = None
         self._reload_count = 0
         self._suppressed_reload_count = 0
         self._recent_reloads: deque[datetime] = deque()
@@ -918,9 +919,14 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         next_scheduled_reload = None
         if scheduled_reload and scheduled_reload_interval is not None:
             anchor = self._last_reload or self._setup_time
-            next_scheduled_reload = anchor + timedelta(
-                seconds=int(scheduled_reload_interval)
-            )
+            next_due = anchor + timedelta(seconds=int(scheduled_reload_interval))
+            if self._last_scheduled_reload_attempt is not None:
+                values = config_values(self.entry)
+                cooldown_due = self._last_scheduled_reload_attempt + timedelta(
+                    seconds=int(values[CONF_RELOAD_COOLDOWN_SECONDS])
+                )
+                next_due = max(next_due, cooldown_due)
+            next_scheduled_reload = next_due
         return HealthData(
             healthy=healthy,
             reason=self._truncate_reason(reason),
@@ -999,9 +1005,18 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         if in_startup_grace or in_post_reload_grace:
             return None
 
+        # Throttle scheduled attempts independently from successful reloads.
+        # Without this, a failed scheduled reload or an exhausted reload budget
+        # would be retried on every health-check cycle once the interval is due.
+        if self._last_scheduled_reload_attempt is not None:
+            if self._seconds_since(self._last_scheduled_reload_attempt, now) < cooldown:
+                return None
+
         if self._last_reload is not None:
             if self._seconds_since(self._last_reload, now) < cooldown:
                 return None
+
+        self._last_scheduled_reload_attempt = now
 
         if not self._reload_budget_available(now, max_reloads_per_hour):
             self._suppressed_reload_count += 1

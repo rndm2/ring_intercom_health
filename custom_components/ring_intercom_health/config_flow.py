@@ -367,12 +367,17 @@ def _validate_user_input(
         errors[CONF_API_MAX_AGE_SECONDS] = "too_low"
     if data[CONF_ACTIVE_PROBE_INTERVAL_SECONDS] < MIN_ACTIVE_PROBE_INTERVAL_SECONDS:
         errors[CONF_ACTIVE_PROBE_INTERVAL_SECONDS] = "too_low"
-    if (
-        data[CONF_SCHEDULED_RELOAD]
-        and data[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS]
-        < MIN_SCHEDULED_RELOAD_INTERVAL_SECONDS
-    ):
-        errors[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS] = "too_low"
+    if data[CONF_SCHEDULED_RELOAD]:
+        if (
+            data[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS]
+            < MIN_SCHEDULED_RELOAD_INTERVAL_SECONDS
+        ):
+            errors[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS] = "too_low"
+        elif (
+            data[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS]
+            > MAX_SCHEDULED_RELOAD_INTERVAL_SECONDS
+        ):
+            errors[CONF_SCHEDULED_RELOAD_INTERVAL_SECONDS] = "too_high"
     if data[CONF_RELOAD_COOLDOWN_SECONDS] < data[CONF_BAD_FOR_SECONDS]:
         errors[CONF_RELOAD_COOLDOWN_SECONDS] = "cooldown_less_than_bad_for"
 

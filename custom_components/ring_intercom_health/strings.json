@@ -36,7 +36,8 @@
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
       "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
       "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
-      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval.",
+      "too_high": "The value is too high."
     },
     "abort": {
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog."
@@ -77,7 +78,8 @@
       "already_configured": "This Ring config entry already has a Ring Intercom Health watchdog.",
       "source_entity_not_ring": "The source entity must belong to the selected Ring config entry.",
       "source_entity_required_for_attach": "Choose a source entity when attaching to the source device.",
-      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval."
+      "api_max_age_too_low_for_probe": "API max age must be higher than active probe interval plus check interval.",
+      "too_high": "The value is too high."
     }
   },
   "entity": {
