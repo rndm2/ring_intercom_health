@@ -1049,6 +1049,7 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
                 reason,
                 scheduled_signals,
                 notify_on_reload,
+                scheduled=True,
             )
         except Exception as err:  # noqa: BLE001 - expose reload failure as state
             self._suppressed_reload_count += 1
@@ -1133,14 +1134,23 @@ class RingIntercomHealthCoordinator(DataUpdateCoordinator[HealthData]):
         reason: str,
         signals: list[str],
         notify_on_reload: bool,
+        *,
+        scheduled: bool = False,
     ) -> None:
         """Reload the selected Ring config entry."""
 
-        _LOGGER.warning(
-            "Reloading Ring config entry %s due to connection failure: %s",
-            ring_entry_id,
-            reason,
-        )
+        if scheduled:
+            _LOGGER.info(
+                "Reloading Ring config entry %s on schedule: %s",
+                ring_entry_id,
+                reason,
+            )
+        else:
+            _LOGGER.warning(
+                "Reloading Ring config entry %s due to connection failure: %s",
+                ring_entry_id,
+                reason,
+            )
         self._clear_ring_subscriptions()
         await self.hass.config_entries.async_reload(ring_entry_id)
 

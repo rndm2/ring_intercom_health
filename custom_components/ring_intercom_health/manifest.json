@@ -8,7 +8,7 @@
   "documentation": "https://github.com/rndm2/ring_intercom_health",
   "issue_tracker": "https://github.com/rndm2/ring_intercom_health/issues",
   "iot_class": "local_polling",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "after_dependencies": [
     "ring"
   ],
