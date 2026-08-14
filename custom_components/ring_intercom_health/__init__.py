@@ -13,6 +13,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import RingIntercomHealthCoordinator
+from .firebase_compat import apply_firebase_messaging_compatibility_patch
 from .models import RingIntercomHealthConfigEntry, RuntimeData
 
 
@@ -21,6 +22,8 @@ async def async_setup_entry(
     entry: RingIntercomHealthConfigEntry,
 ) -> bool:
     """Set up Ring Intercom Health from a config entry."""
+
+    apply_firebase_messaging_compatibility_patch()
 
     coordinator = RingIntercomHealthCoordinator(hass, entry)
     entry.runtime_data = RuntimeData(coordinator=coordinator)

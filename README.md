@@ -134,3 +134,12 @@ The default `api_max_age_seconds` is 420 seconds so it does not conflict with th
 Runtime/API/listener degradation is logged and exposed through diagnostic entities only.
 It no longer creates a Home Assistant Repairs issue, because transient Ring/FCM failures
 are handled by the reload policy and should not spam the Repairs UI.
+
+### Firebase Base64URL compatibility
+
+The integration applies idempotent compatibility wrappers around
+`firebase-messaging` Web Push handling. They select the `dh` and `salt` header
+parameters by name, discard unrelated parameters such as VAPID's `p256ecdsa`,
+and restore omitted Base64URL padding before decoding. These wrappers can be
+removed after the equivalent fixes are available in Home Assistant's installed
+`firebase-messaging` version.
